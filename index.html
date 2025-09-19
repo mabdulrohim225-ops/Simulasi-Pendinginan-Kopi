@@ -1,17 +1,20 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulasi Suhu Kopi Visual</title>
+<title>Simulasi Suhu Kopi dengan Grafik</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <!-- Halaman input -->
 <div id="page1" class="page">
   <h1>Simulasi Suhu Kopi</h1>
-  <input type="number" id="targetTemp" placeholder="Masukkan suhu kopi (°C)">
+  <input type="number" id="initialTemp" placeholder="Masukkan suhu awal kopi (°C)">
+  <input type="number" id="targetTemp" placeholder="Masukkan suhu target kopi (°C)">
   <button id="startBtn">Mulai Simulasi</button>
 </div>
 
@@ -27,33 +30,80 @@
     <div class="progress-bar" id="progressBar"></div>
   </div>
   <div id="status" class="status"></div>
+
+  <!-- Grafik suhu -->
+  <canvas id="temperatureChart" width="400" height="200"></canvas>
+
+  <!-- Tabel data suhu -->
+  <table id="dataTable">
+    <thead>
+      <tr><th>Detik</th><th>Suhu (°C)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <script>
 const page1 = document.getElementById('page1');
 const page2 = document.getElementById('page2');
 const startBtn = document.getElementById('startBtn');
+const initialInput = document.getElementById('initialTemp');
 const targetInput = document.getElementById('targetTemp');
 const resultDiv = document.getElementById('result');
 const progressBar = document.getElementById('progressBar');
 const statusDiv = document.getElementById('status');
 const video = document.getElementById('myVideo');
+const chartCanvas = document.getElementById('temperatureChart');
+const dataTableBody = document.querySelector('#dataTable tbody');
+
+let tempChart;
 
 startBtn.addEventListener('click', () => {
+  let initialTemp = parseFloat(initialInput.value);
   let targetTemp = parseFloat(targetInput.value);
+
+  if(isNaN(initialTemp)) initialTemp = 25;
   if(isNaN(targetTemp)) targetTemp = 70;
+
   page1.classList.add('hidden');
   page2.classList.remove('hidden');
-  simulateCoffeeTemperature(targetTemp);
+
+  // Reset chart & table
+  dataTableBody.innerHTML = '';
+  if(tempChart) tempChart.destroy();
+
+  tempChart = new Chart(chartCanvas, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Suhu Kopi (°C)',
+        data: [],
+        borderColor: 'rgba(255,99,132,1)',
+        backgroundColor: 'rgba(255,99,132,0.2)',
+        fill: true,
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'Waktu (detik)' } },
+        y: { title: { display: true, text: 'Suhu (°C)' }, beginAtZero: false }
+      }
+    }
+  });
+
+  simulateCoffeeTemperature(targetTemp, initialTemp);
 });
 
-function simulateCoffeeTemperature(targetTemp) {
-  let T = 25;
+function simulateCoffeeTemperature(targetTemp, initialTemp) {
+  let T = initialTemp;
   const k = 0.1;
   const dt = 1;
   let time = 0;
 
-  resultDiv.innerHTML = `<p>Target suhu kopi: ${targetTemp}°C</p>`;
+  resultDiv.innerHTML = `<p>Target suhu kopi: ${targetTemp}°C</p>
+                         <p>Suhu awal: ${T}°C</p>`;
   progressBar.style.width = '0%';
   statusDiv.textContent = '';
 
@@ -62,7 +112,7 @@ function simulateCoffeeTemperature(targetTemp) {
       T += k * (targetTemp - T) * dt;
       time += dt;
 
-      const percent = Math.min(((T-25)/(targetTemp-25))*100, 100);
+      const percent = Math.min(((T - initialTemp)/(targetTemp - initialTemp))*100, 100);
       progressBar.style.width = percent + '%';
 
       // Klasifikasi suhu & visual
@@ -85,6 +135,16 @@ function simulateCoffeeTemperature(targetTemp) {
 
       resultDiv.innerHTML = `<p>Target suhu kopi: ${targetTemp}°C</p>
                              <p>Suhu saat ini: ${T.toFixed(2)}°C</p>`;
+
+      // Update chart
+      tempChart.data.labels.push(time);
+      tempChart.data.datasets[0].data.push(T.toFixed(2));
+      tempChart.update();
+
+      // Update table
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${time}</td><td>${T.toFixed(2)}</td>`;
+      dataTableBody.appendChild(row);
 
       requestAnimationFrame(step);
     } else {
