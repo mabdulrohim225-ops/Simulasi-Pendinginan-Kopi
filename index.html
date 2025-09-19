@@ -1,200 +1,141 @@
-<!doctype html>
-<html lang="id">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sahabat Kopag - Simulasi Pendinginan</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4e342e">
-<link rel="icon" href="assets/icon-192.png" type="image/png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Suhu Interaktif</title>
 <style>
-body{
-  font-family: 'Segoe UI', Arial, sans-serif;
-  margin:0;padding:0;
-  background: linear-gradient(135deg, rgba(111,78,55,0.88), rgba(62,39,35,0.95));
-  color:#fff;
-}
-.container{max-width:900px;margin:0 auto;padding:20px;}
-.header{text-align:center;margin-bottom:20px;}
-.header h1{font-size:1.6em;color:#fff;margin:0;padding:6px 0;}
-.card{
-  background:#fff;color:#333;
-  padding:20px;margin:20px 0;
-  border-radius:16px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.25);
-  opacity:0; transform:translateY(20px);
-  transition:all 0.6s ease;
-}
-.card.show{opacity:1;transform:translateY(0);}
-.hero{display:flex;justify-content:center;margin-bottom:18px;}
-.hero video{max-width:100%;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.4)}
-label{font-weight:600;margin-top:10px;display:block;}
-input,button{width:100%;padding:12px;margin-top:6px;border-radius:8px;border:1px solid #ccc;font-size:1em;}
-button{background:#6f4e37;color:#fff;border:none;font-weight:bold;cursor:pointer;transition:0.3s;box-shadow:0 6px 12px rgba(0,0,0,0.12);}
-button:hover{background:#4e342e;}
-#chart{width:100%;height:260px;margin:10px 0;}
-.table-fixed{max-height:240px;overflow:auto;margin-top:10px;background:#fff;border-radius:8px;padding:6px;}
-.table-fixed table{width:100%;border-collapse:collapse;background:#fff;}
-.table-fixed th,.table-fixed td{padding:8px;text-align:center;border-bottom:1px solid #eee;color:#222;}
-.table-fixed tr:nth-child(even){background:#fafafa;}
-.math{background:#f9fbff;padding:12px;border-radius:10px;border:1px solid #e6f0fb;margin-bottom:12px;color:#222;}
-#enjoy{font-size:1.3em;text-align:center;margin-top:20px;font-weight:bold;color:#3e2723;opacity:0;transition:opacity 1.2s ease;}
-#enjoy.show{opacity:1;}
-.output-section {display:none;}
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    height: 100%;
+    background-color: #222;
+    color: white;
+  }
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 1s ease, transform 1s ease;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  .hidden {
+    opacity: 0;
+    transform: translateX(100%);
+    pointer-events: none;
+  }
+  input {
+    padding: 10px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    width: 200px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  video {
+    max-width: 80%;
+    max-height: 60%;
+    border: 2px solid white;
+    background-color: black;
+    margin-bottom: 20px;
+  }
+  .progress-container {
+    width: 80%;
+    background: #444;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+  .progress-bar {
+    height: 20px;
+    background: #4caf50;
+    width: 0%;
+  }
 </style>
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>☕ Sahabat Kopag - Simulasi Penurunan Suhu (Euler)</h1>
+
+<!-- Halaman 1: Input -->
+<div id="page1" class="page">
+  <h1>Masukkan Suhu Target</h1>
+  <input type="number" id="targetTemp" placeholder="Contoh: 65">
+  <button id="startBtn">Mulai Simulasi</button>
+</div>
+
+<!-- Halaman 2: Video + Hasil -->
+<div id="page2" class="page hidden">
+  <h1>Video & Simulasi Suhu</h1>
+  <video id="myVideo" controls loop>
+    <source src="video.mp4" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
+  <div id="result"></div>
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
   </div>
-
-  <!-- INPUT CARD (with ornament video) -->
-  <div class="card show" id="inputCard">
-    <div class="hero">
-      <video autoplay muted loop playsinline>
-        <source src="assets/ornamen.mp4" type="video/mp4">
-      </video>
-    </div>
-
-    <label for="t0">Suhu awal T₀ (°C)</label>
-    <input id="t0" type="number" value="90">
-
-    <label for="ta">Suhu lingkungan Tₐ (°C)</label>
-    <input id="ta" type="number" value="27">
-
-    <label for="k">Konstanta pendinginan k (per menit)</label>
-    <input id="k" type="number" step="0.001" value="0.03">
-
-    <label for="dt">Δt (menit)</label>
-    <input id="dt" type="number" step="0.1" value="0.5">
-
-    <label for="dur">Durasi simulasi (menit)</label>
-    <input id="dur" type="number" value="60">
-
-    <button id="run">Gasss 🚀</button>
-  </div>
-
-  <!-- OUTPUT (hidden until run) -->
-  <div class="output-section" id="output">
-    <div class="card" id="rumusCard">
-      <h2>Rumus</h2>
-      <div class="math">
-        <p>Hukum Pendinginan Newton: $$\frac{dT}{dt} = -k(T - T_a)$$</p>
-        <p>Metode Euler (diskret): $$T_{n+1} = T_n + \Delta t\cdot\big(-k(T_n - T_a)\big)$$</p>
-        <p>Keterangan: T suhu (°C), Tₐ suhu lingkungan, k konstanta, Δt langkah waktu (menit).</p>
-      </div>
-    </div>
-
-    <div class="card" id="grafikCard">
-      <h2>Grafik Hasil Simulasi</h2>
-      <div id="chart"></div>
-    </div>
-
-    <div class="card" id="tabelCard">
-      <h2>Tabel Hasil</h2>
-      <div class="table-fixed"><table id="resultTable"></table></div>
-      <p id="summary"></p>
-    </div>
-
-    <div id="enjoy">☕ Selamat Menikmati!</div>
-  </div>
-
 </div>
 
 <script>
-/* Simulation and UI logic */
-function runSimulation(T0, Ta, k, dt, dur) {
-  const steps = Math.ceil(dur / dt);
-  let T = parseFloat(T0);
-  const times = [0], temps = [Number(T.toFixed(2))];
-  for (let i = 0; i < steps; i++) {
-    const dTdt = -k * (T - Ta);
-    T = T + dt * dTdt;
-    times.push(Number(((i + 1) * dt).toFixed(3)));
-    temps.push(Number(T.toFixed(2)));
-  }
-  return { times, temps };
-}
+  const page1 = document.getElementById('page1');
+  const page2 = document.getElementById('page2');
+  const startBtn = document.getElementById('startBtn');
+  const targetInput = document.getElementById('targetTemp');
+  const resultDiv = document.getElementById('result');
+  const progressBar = document.getElementById('progressBar');
+  const video = document.getElementById('myVideo');
 
-function drawChart(times, temps) {
-  const chart = document.getElementById('chart');
-  chart.innerHTML = '';
-  const width = chart.clientWidth || 800, height = 260, pad = 36;
-  const maxT = Math.max(...temps), minT = Math.min(...temps);
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', height);
-  svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-
-  // axes line
-  const axisX = document.createElementNS(svgNS,'line'); axisX.setAttribute('x1',pad); axisX.setAttribute('y1',height-pad);
-  axisX.setAttribute('x2',width-pad); axisX.setAttribute('y2',height-pad); axisX.setAttribute('stroke','#ccc'); axisX.setAttribute('stroke-width','1');
-  svg.appendChild(axisX);
-
-  // polyline points
-  const points = temps.map((t,i) => {
-    const x = pad + (i / (temps.length - 1)) * (width - pad * 2);
-    const y = pad + (1 - ((t - minT) / (maxT - minT || 1))) * (height - pad * 2);
-    return x + ',' + y;
-  }).join(' ');
-
-  const poly = document.createElementNS(svgNS, 'polyline');
-  poly.setAttribute('points', points);
-  poly.setAttribute('fill', 'none');
-  poly.setAttribute('stroke', '#d35400');
-  poly.setAttribute('stroke-width', '3');
-  poly.setAttribute('stroke-linecap','round');
-  poly.setAttribute('stroke-linejoin','round');
-  svg.appendChild(poly);
-
-  // labels (min/max)
-  const labelMin = document.createElementNS(svgNS,'text'); labelMin.setAttribute('x', 6); labelMin.setAttribute('y', height - pad + 12);
-  labelMin.setAttribute('font-size','12'); labelMin.setAttribute('fill','#666'); labelMin.textContent = minT + ' °C';
-  svg.appendChild(labelMin);
-  const labelMax = document.createElementNS(svgNS,'text'); labelMax.setAttribute('x', 6); labelMax.setAttribute('y', pad - 8);
-  labelMax.setAttribute('font-size','12'); labelMax.setAttribute('fill','#666'); labelMax.textContent = maxT + ' °C';
-  svg.appendChild(labelMax);
-
-  chart.appendChild(svg);
-}
-
-document.getElementById('run').addEventListener('click', () => {
-  const T0 = parseFloat(document.getElementById('t0').value);
-  const Ta = parseFloat(document.getElementById('ta').value);
-  const k = parseFloat(document.getElementById('k').value);
-  const dt = parseFloat(document.getElementById('dt').value);
-  const dur = parseFloat(document.getElementById('dur').value);
-
-  if ([T0, Ta, k, dt, dur].some(v => Number.isNaN(v))) { alert('Isi semua input dengan angka valid.'); return; }
-
-  const res = runSimulation(T0, Ta, k, dt, dur);
-  drawChart(res.times, res.temps);
-
-  // show output area with smooth transition
-  document.getElementById('output').style.display = 'block';
-  setTimeout(() => {
-    document.querySelectorAll('#output .card').forEach(c => c.classList.add('show'));
-  }, 120);
-
-  // populate table
-  const table = document.getElementById('resultTable');
-  table.innerHTML = '<tr><th>t (menit)</th><th>T (°C)</th></tr>';
-  res.times.forEach((t,i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + t + ' menit</td><td>' + res.temps[i] + ' °C</td>';
-    table.appendChild(tr);
+  startBtn.addEventListener('click', () => {
+    const targetTemp = parseFloat(targetInput.value) || 65; // default 65°C
+    page1.classList.add('hidden');
+    page2.classList.remove('hidden');
+    simulateTemperature(targetTemp);
   });
 
-  const idx = res.temps.findIndex(v => v <= 65);
-  const summary = document.getElementById('summary');
-  summary.innerHTML = idx >= 0 ? '☕ Suhu 65°C tercapai pada t = <b>' + res.times[idx] + ' menit</b>' : 'ℹ️ Tidak tercapai 65°C dalam durasi simulasi.';
-  setTimeout(()=> document.getElementById('enjoy').classList.add('show'), 800);
-});
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+  function simulateTemperature(targetTemp) {
+    let T = 25;
+    const k = 0.1;
+    const dt = 1;
+    let time = 0;
+
+    resultDiv.innerHTML = `<p>Suhu target: ${targetTemp}°C</p>`;
+    
+    function step() {
+      if(T < targetTemp) {
+        T += k * (targetTemp - T) * dt;
+        time += dt;
+        const percent = Math.min(((T-25)/(targetTemp-25))*100, 100);
+        progressBar.style.width = percent + '%';
+        requestAnimationFrame(step);
+      } else {
+        resultDiv.innerHTML += `<p>Suhu tercapai dalam ${time} detik.</p>`;
+      }
+    }
+    step();
+  }
+
+  video.addEventListener('loadeddata', () => {
+    video.play().catch(err => {
+      console.error('Video autoplay error:', err);
+      resultDiv.innerHTML += `<p style="color:red">Klik play manual jika autoplay gagal.</p>`;
+    });
+  });
+
+  video.addEventListener('error', (e) => {
+    console.error('Video load error:', e);
+    resultDiv.innerHTML += `<p style="color:red">Video gagal dimuat. Periksa format atau path.</p>`;
+  });
 </script>
+
 </body>
 </html>
