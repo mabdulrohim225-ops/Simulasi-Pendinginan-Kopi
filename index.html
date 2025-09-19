@@ -3,80 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulasi Suhu Interaktif</title>
-<style>
-  body, html {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-    height: 100%;
-    background-color: #222;
-    color: white;
-  }
-  .page {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    opacity: 1;
-    transition: opacity 1s ease, transform 1s ease;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  .hidden {
-    opacity: 0;
-    transform: translateX(100%);
-    pointer-events: none;
-  }
-  input {
-    padding: 10px;
-    font-size: 16px;
-    margin-bottom: 20px;
-    width: 200px;
-  }
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  video {
-    max-width: 80%;
-    max-height: 60%;
-    border: 2px solid white;
-    background-color: black;
-    margin-bottom: 20px;
-  }
-  .progress-container {
-    width: 80%;
-    background: #444;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 20px;
-  }
-  .progress-bar {
-    height: 20px;
-    background: #4caf50;
-    width: 0%;
-  }
-</style>
+<title>Simulasi Suhu Kopi Visual</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Halaman 1: Input -->
+<!-- Halaman input -->
 <div id="page1" class="page">
-  <h1>Masukkan Suhu Target</h1>
-  <input type="number" id="targetTemp" placeholder="Contoh: 65">
+  <h1>Simulasi Suhu Kopi</h1>
+  <input type="number" id="targetTemp" placeholder="Masukkan suhu kopi (°C)">
   <button id="startBtn">Mulai Simulasi</button>
 </div>
 
-<!-- Halaman 2: Video + Hasil -->
+<!-- Halaman video + hasil -->
 <div id="page2" class="page hidden">
-  <h1>Video & Simulasi Suhu</h1>
-  <video id="myVideo" controls loop>
+  <h1>Video & Hasil Suhu Kopi</h1>
+  <video id="myVideo" autoplay muted loop playsinline>
     <source src="video.mp4" type="video/mp4">
     Your browser does not support HTML5 video.
   </video>
@@ -84,57 +26,84 @@
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
   </div>
+  <div id="status" class="status"></div>
 </div>
 
 <script>
-  const page1 = document.getElementById('page1');
-  const page2 = document.getElementById('page2');
-  const startBtn = document.getElementById('startBtn');
-  const targetInput = document.getElementById('targetTemp');
-  const resultDiv = document.getElementById('result');
-  const progressBar = document.getElementById('progressBar');
-  const video = document.getElementById('myVideo');
+const page1 = document.getElementById('page1');
+const page2 = document.getElementById('page2');
+const startBtn = document.getElementById('startBtn');
+const targetInput = document.getElementById('targetTemp');
+const resultDiv = document.getElementById('result');
+const progressBar = document.getElementById('progressBar');
+const statusDiv = document.getElementById('status');
+const video = document.getElementById('myVideo');
 
-  startBtn.addEventListener('click', () => {
-    const targetTemp = parseFloat(targetInput.value) || 65; // default 65°C
-    page1.classList.add('hidden');
-    page2.classList.remove('hidden');
-    simulateTemperature(targetTemp);
-  });
+startBtn.addEventListener('click', () => {
+  let targetTemp = parseFloat(targetInput.value);
+  if(isNaN(targetTemp)) targetTemp = 70;
+  page1.classList.add('hidden');
+  page2.classList.remove('hidden');
+  simulateCoffeeTemperature(targetTemp);
+});
 
-  function simulateTemperature(targetTemp) {
-    let T = 25;
-    const k = 0.1;
-    const dt = 1;
-    let time = 0;
+function simulateCoffeeTemperature(targetTemp) {
+  let T = 25;
+  const k = 0.1;
+  const dt = 1;
+  let time = 0;
 
-    resultDiv.innerHTML = `<p>Suhu target: ${targetTemp}°C</p>`;
-    
-    function step() {
-      if(T < targetTemp) {
-        T += k * (targetTemp - T) * dt;
-        time += dt;
-        const percent = Math.min(((T-25)/(targetTemp-25))*100, 100);
-        progressBar.style.width = percent + '%';
-        requestAnimationFrame(step);
+  resultDiv.innerHTML = `<p>Target suhu kopi: ${targetTemp}°C</p>`;
+  progressBar.style.width = '0%';
+  statusDiv.textContent = '';
+
+  function step() {
+    if(T < targetTemp) {
+      T += k * (targetTemp - T) * dt;
+      time += dt;
+
+      const percent = Math.min(((T-25)/(targetTemp-25))*100, 100);
+      progressBar.style.width = percent + '%';
+
+      // Klasifikasi suhu & visual
+      if(T < 45) {
+        statusDiv.textContent = "Terlalu Dingin ❄️";
+        statusDiv.style.color = '#1E90FF';
+        progressBar.style.backgroundColor = '#1E90FF';
+        document.body.style.backgroundColor = '#87CEFA';
+      } else if(T >= 45 && T <= 65) {
+        statusDiv.textContent = "Suhu Pas untuk Dinikmati ☕";
+        statusDiv.style.color = '#4CAF50';
+        progressBar.style.backgroundColor = '#4CAF50';
+        document.body.style.backgroundColor = '#32CD32';
       } else {
-        resultDiv.innerHTML += `<p>Suhu tercapai dalam ${time} detik.</p>`;
+        statusDiv.textContent = "Terlalu Panas 🔥";
+        statusDiv.style.color = '#FF4500';
+        progressBar.style.backgroundColor = '#FF4500';
+        document.body.style.backgroundColor = '#FF6347';
       }
+
+      resultDiv.innerHTML = `<p>Target suhu kopi: ${targetTemp}°C</p>
+                             <p>Suhu saat ini: ${T.toFixed(2)}°C</p>`;
+
+      requestAnimationFrame(step);
+    } else {
+      resultDiv.innerHTML += `<p>Suhu kopi tercapai dalam ${time} detik.</p>`;
+      progressBar.style.width = '100%';
     }
-    step();
   }
 
-  video.addEventListener('loadeddata', () => {
-    video.play().catch(err => {
-      console.error('Video autoplay error:', err);
-      resultDiv.innerHTML += `<p style="color:red">Klik play manual jika autoplay gagal.</p>`;
-    });
-  });
+  step();
+}
 
-  video.addEventListener('error', (e) => {
-    console.error('Video load error:', e);
-    resultDiv.innerHTML += `<p style="color:red">Video gagal dimuat. Periksa format atau path.</p>`;
-  });
+// Video autoplay handling
+video.addEventListener('loadeddata', () => {
+  video.play().catch(err => console.error('Video autoplay error:', err));
+});
+video.addEventListener('error', (e) => {
+  console.error('Video load error:', e);
+  resultDiv.innerHTML += `<p style="color:red">Video gagal dimuat.</p>`;
+});
 </script>
 
 </body>
